@@ -1,63 +1,57 @@
 const { ApolloServer, gql } = require("apollo-server");
-
+const axios = require('axios');
 
 const typeDefs = gql`
-  type Book {
-    id: String  
-    title: String
-    author: String
+  type BreakingQuote {
+    quote: String!
+    author: String!
   }
 
   type Query {
-    Getbooks: [Book],
-    Getbook(id:String!):[Book]
+    GetBreakingQuotes: [BreakingQuote]
+    GetBreakingQuote(quote: String!): BreakingQuote
   }
+
   type Mutation {
-      CreateBook(id: String!,title: String!, author: String!): Book
-      DeleteBook(id: String!): Book
-      UpdateBook(id: String!,title: String!, author: String!): Book 
+    CreateBreakingQuote(quote: String!, author: String!): BreakingQuote
+    DeleteBreakingQuote(quote: String!): BreakingQuote
+    UpdateBreakingQuote(quote: String!, author: String!): BreakingQuote
   }
 `;
 
-let books = [
-    {
-      id:"1",
-      title: 'The Awakening',
-      author: 'Kate Chopin',
-    },
-    {
-      id:"2",  
-      title: 'City of Glass',
-      author: 'Paul Auster',
-    },
-    {
-       id:"3",  
-       title: 'Del amor y otros demonios',
-       author: 'Gabriel garcia Marquez',
-    }
-  ];
-  const resolvers = {
-    Mutation: {
-        CreateBook: (_,arg) => {books.push(arg); return arg},
-        DeleteBook: (_,arg) => { 
-                                 let finalbooks=books.filter(book => book.id != arg.id);
-                                 let bookdeleted = books.find(book => book.id == arg.id );   
-                                 books = [...finalbooks]; 
-                                 return bookdeleted
-                                },
-        UpdateBook:(_,arg) => {  let objIdx = books.findIndex(book => book.id == arg.id);
-                                 books[objIdx] = arg
-                                 return arg   
-             
-                              }                        
+let breakingQuotes = [];
 
-    },  
-    Query: {
-      Getbooks: () => books,
-      Getbook: (_,arg) => books.find(number => number.id==arg.id)
-    },
-  };
+const getBreakingQuotes = async ()=>{
+  const response = await axios.get('https://api.breakingbadquotes.xyz/v1/quotes/10')
+  const data = response.data
+  breakingQuotes = data;
+}
 
+getBreakingQuotes();
+
+const resolvers = {
+  Mutation: {
+    CreateBreakingQuote: (_, arg) => {
+      breakingQuotes.push(arg);
+      return arg;
+    },
+    DeleteBreakingQuote: (_, arg) => {
+      let finalbreakingQuotes = breakingQuotes.filter((breakingQuote) => breakingQuote.quote != arg.quote);
+      let breakingQuotedeleted = breakingQuotes.find((breakingQuote) => breakingQuote.quote == arg.quote);
+      breakingQuotes = [...finalbreakingQuotes];
+      return breakingQuotedeleted;
+    },
+    UpdateBreakingQuote: (_, arg) => {
+      let objquotex = breakingQuotes.findIndex((breakingQuote) => breakingQuote.quote == arg.quote);
+      breakingQuotes[objquotex] = arg;
+      return arg;
+    },
+  },
+  Query: {
+    GetBreakingQuotes: () => breakingQuotes,
+    GetBreakingQuote: (_, arg) => breakingQuotes.find((number) => number.quote == arg.quote),
+  },
+};
 
 const server = new ApolloServer({ typeDefs, resolvers });
 
