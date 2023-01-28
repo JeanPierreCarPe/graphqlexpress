@@ -1,39 +1,57 @@
 const { ApolloServer, gql } = require("apollo-server");
-
+const axios = require('axios');
 
 const typeDefs = gql`
-  # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
-
-  # This "Book" type defines the queryable fields for every book in our data source.
-  type Book {
-    title: String
-    author: String
+  type BreakingQuote {
+    quote: String!
+    author: String!
   }
 
-  # The "Query" type is special: it lists all of the available queries that
-  # clients can execute, along with the return type for each. In this
-  # case, the "books" query returns an array of zero or more Books (defined above).
   type Query {
-    books: [Book]
+    GetBreakingQuotes: [BreakingQuote]
+    GetBreakingQuote(quote: String!): BreakingQuote
+  }
+
+  type Mutation {
+    CreateBreakingQuote(quote: String!, author: String!): BreakingQuote
+    DeleteBreakingQuote(quote: String!): BreakingQuote
+    UpdateBreakingQuote(quote: String!, author: String!): BreakingQuote
   }
 `;
 
-const books = [
-    {
-      title: 'The Awakening',
-      author: 'Kate Chopin',
-    },
-    {
-      title: 'City of Glass',
-      author: 'Paul Auster',
-    },
-  ];
-  const resolvers = {
-    Query: {
-      books: () => books,
-    },
-  };
+let breakingQuotes = [];
 
+const getBreakingQuotes = async ()=>{
+  const response = await axios.get('https://api.breakingbadquotes.xyz/v1/quotes/10')
+  const data = response.data
+  breakingQuotes = data;
+}
+
+getBreakingQuotes();
+
+const resolvers = {
+  Mutation: {
+    CreateBreakingQuote: (_, arg) => {
+      breakingQuotes.push(arg);
+      return arg;
+    },
+    DeleteBreakingQuote: (_, arg) => {
+      let finalbreakingQuotes = breakingQuotes.filter((breakingQuote) => breakingQuote.quote != arg.quote);
+      let breakingQuotedeleted = breakingQuotes.find((breakingQuote) => breakingQuote.quote == arg.quote);
+      breakingQuotes = [...finalbreakingQuotes];
+      return breakingQuotedeleted;
+    },
+    UpdateBreakingQuote: (_, arg) => {
+      let objquotex = breakingQuotes.findIndex((breakingQuote) => breakingQuote.quote == arg.quote);
+      breakingQuotes[objquotex] = arg;
+      return arg;
+    },
+  },
+  Query: {
+    GetBreakingQuotes: () => breakingQuotes,
+    GetBreakingQuote: (_, arg) => breakingQuotes.find((number) => number.quote == arg.quote),
+  },
+};
 
 const server = new ApolloServer({ typeDefs, resolvers });
 
